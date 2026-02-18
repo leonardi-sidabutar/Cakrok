@@ -1,13 +1,22 @@
 import Icon from "react-native-vector-icons/Ionicons";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { cakrokStyle } from "../../constants/styles";
 import { supabase } from "../../../lib/supabase/Supabase"
 
+// Component
+import Header from '../../components/header/Header'
+
+
 export default function Cashier() {
   const [hitung, setHitung] = useState(0);
   const [menu,setMenu] = useState([]);
+  const [cart, setCart] = useState([]);
+
+  function formatRupiah(angka) {
+    return 'Rp ' + angka.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+  }  
 
   const getMenu = async()=>{
     const{data,err} = await supabase
@@ -17,7 +26,8 @@ export default function Cashier() {
     if(err){
       console.log('Error :',err.message)
     }else{
-      console.log('Data :',data)
+      console.log(data)
+      setMenu(data)
     }
   }
 
@@ -26,15 +36,38 @@ export default function Cashier() {
     getMenu();
   }
 
-  const logOut = async ()=> {
-    const {err} = await supabase.auth.signOut()
-
-    if(err){
-      Alert.alert('Logout Gagal:',err.message)
-    }else{
-      Alert.alert('Anda Logout')
+  const addCart = (item)=>{
+    const existing = cart.find((i) => i.id === item.id);
+    if (existing) {
+      setCart(
+        cart.map((i) =>
+          i.id === item.id ? { ...i, qty: i.qty + 1 } : i
+        )
+      );
+    } else {
+      setCart([...cart, { ...item, qty: 1 }]);
     }
+    console.log(cart);
   }
+
+  const decreaseQty = (id) => {
+    setCart((prevCart) =>
+      prevCart
+        .map((item) =>
+          item.id === id
+            ? { ...item, qty: item.qty - 1 }
+            : item
+        )
+        .filter((item) => item.qty > 0) // otomatis hapus kalau qty 0
+    );
+  };
+
+    // 🔹 Hitung total (optimal)
+  const total = useMemo(() => {
+    return cart.reduce((sum, item) => {
+      return sum + item.harga * item.qty;
+    }, 0);
+  }, [cart]);
 
   useEffect(()=>{
     getMenu();
@@ -43,81 +76,8 @@ export default function Cashier() {
 
   return (
     <SafeAreaView style={cakrokStyle.safeArea}>
-      {/* Header */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginBottom: 10,
-        }}
-      >
-        <View style={{ width: "50%" }}>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-            }}
-          >
-            <Image
-              source={require("../../assets/images/splash-icon.png")}
-              style={{ width: 40, height: 40, borderRadius: 5 }}
-            />
-            <Text
-              style={{
-                fontSize: 15,
-                color: "#ff6817",
-                fontWeight: 500,
-                marginLeft: 15,
-              }}
-            >
-              Selasa, 10 Feb 2026
-            </Text>
-          </View>
-        </View>
-        <View
-          style={{
-            width: "50%",
-            justifyContent: "flex-end",
-            flexDirection: "row",
-            gap: 10,
-            alignItems: "center",
-          }}
-        >
-          <Text style={{ fontSize: 12 }}>Total Pesanan : 20</Text>
-          <View
-            style={{
-              width: 110,
-              flexDirection: "row",
-              backgroundColor: "white",
-              justifyContent: "center",
-              height: 40,
-              alignItems: "center",
-              borderRadius: 10,
-              gap: 10,
-            }}
-          >
-            <Text style={{ fontWeight: 600 }}>Laporan</Text>
-            <Icon name="clipboard" size={20} color={"#777"} />
-          </View>
-          <View
-            style={{
-              width: 115,
-              flexDirection: "row",
-              backgroundColor: "white",
-              height: 40,
-              gap: 8,
-              alignItems: "center",
-              borderRadius: 50,
-            }}
-          >
-            <Icon name="person-circle" size={40} color="#777" />
-            <TouchableOpacity onPress={logOut}>
-              <Text style={{ fontWeight: 700, fontSize: 12 }}>M. Ridho</Text>
-              <Text style={{ fontWeight: 400, fontSize: 12 }}>Cashier</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
+      
+      <Header/>
 
       <View style={{ flexDirection: "row" }}>
         {/* SearchBar */}
@@ -201,66 +161,72 @@ export default function Cashier() {
           </View>
           {/* Menu */}
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-            <TouchableOpacity
-              onPress={tekan}
-              style={{
-                borderWidth: 1.5,
-                borderColor: "#ff6817",
-                borderRadius: 20,
-                width: "23.6%",
-                alignItems: "center",
-                backgroundColor: "white",
-                height: 150,
-                justifyContent: "space-between",
-                padding: 10,
-              }}
-            >
-              <View style={{ height: "70%", justifyContent: "center" }}>
-                <Image
-                  source={{
-                    uri: "https://xwmqhxvihwxbkddnfcal.supabase.co/storage/v1/object/public/cakrok_img/sanger.png",
-                  }}
+            {
+              menu.map((item,index)=>(
+                <TouchableOpacity
+                  // onPress={tekan}
                   style={{
-                    width: 90,
-                    height: 70,
-                    backgroundColor: "red",
-                    borderRadius: 15,
-                  }}
-                />
-              </View>
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  width: "100%",
-                }}
-              >
-                <View>
-                  <Text style={{ fontSize: 14, fontWeight: 600 }}>
-                    Sanger Coklat
-                  </Text>
-                  <Text
-                    style={{ fontSize: 12, fontWeight: 500, color: "#888888" }}
-                  >
-                    Rp. 10000
-                  </Text>
-                </View>
-                <View
-                  style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: 50,
-                    borderWidth: 1,
-                    justifyContent: "center",
-                    alignItems: "center",
+                    flexDirection:'column',
+                    borderWidth: 1.5,
                     borderColor: "#ff6817",
+                    borderRadius: 20,
+                    width: "23.6%",
+                    alignItems: "center",
+                    backgroundColor: "white",
+                    height: 170,
+                    padding: 10,
+                    justifyContent:'space-between'
                   }}
+                  key={item.id}
+                  onPress={()=>addCart(item)}
                 >
-                  <Icon name="add" size={20} color={"#ff6817"} />
-                </View>
-              </View>
-            </TouchableOpacity>
+                  <View style={{ width:'100%', justifyContent: "center"}}>
+                    <Image
+                      source={{
+                        uri: item.img_url,
+                      }}
+                      style={{
+                        width:'100%',
+                        height:100,
+                        borderRadius:15
+                      }}
+                    />
+                  </View>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      width: "100%",
+                    }}
+                  >
+                    <View>
+                      <Text style={{ fontSize: 14, fontWeight: 600 }}>
+                        {item.nama}
+                      </Text>
+                      <Text
+                        style={{ fontSize: 12, fontWeight: 500, color: "#888888" }}
+                      >
+                        Rp. {item.harga}
+                      </Text>
+                    </View>
+                    <View
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: 50,
+                        borderWidth: 1,
+                        justifyContent: "center",
+                        alignItems: "center",
+                        borderColor: "#ff6817",
+                      }}
+                    >
+                      <Icon name="add" size={20} color={"#ff6817"} />
+                    </View>
+                  </View>
+                </TouchableOpacity>              
+              
+            ))}
           </View>
         </View>
         <View style={{ width: "35%" }}>
@@ -269,7 +235,7 @@ export default function Cashier() {
             style={{
               backgroundColor: "white",
               width: "100%",
-              height: "95%",
+              height:'97%',
               borderRadius: 25,
               borderTopRightRadius: 0,
               borderBottomRightRadius: 0,
@@ -293,106 +259,113 @@ export default function Cashier() {
                   flex: 1,
                 }}
               >
-                <View
-                  style={{ width: "100%", height: 70, flexDirection: "row" }}
-                >
-                  <View
-                    style={{
-                      alignItems: "center",
-                      justifyContent: "center",
-                      marginRight: 10,
-                    }}
-                  >
-                    <Image
-                      source={{
-                        uri: "https://xwmqhxvihwxbkddnfcal.supabase.co/storage/v1/object/public/cakrok_img/sanger.png",
-                      }}
-                      style={{
-                        width: 70,
-                        height: 70,
-                        backgroundColor: "red",
-                        borderRadius: 15,
-                      }}
-                    />
-                  </View>
-                  <View
-                    style={{
-                      flex: 1,
-                      flexDirection: "row",
-                      width: "100%",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <View
-                      style={{
-                        justifyContent: "space-between",
-                        height: "80%",
-                      }}
+              {
+                cart.length === 0 ? (<Text>Kosong</Text>) :
+                (
+                  cart.map((item,index)=>(
+                  <View style={{ width: "100%", height: 70, flexDirection: "row"}} key={item.id}
                     >
-                      <Text
-                        style={{
-                          fontSize: 16,
-                          marginBottom: 2,
-                          fontWeight: 700,
-                        }}
-                      >
-                        test Sanger
-                      </Text>
-                      <Text style={{ fontSize: 14 }}>Rp. 10000 x {hitung}</Text>
-                    </View>
-                    <View>
-                      <Text style={{ fontSize: 18, fontWeight: 600 }}>
-                        Rp. 10000
-                      </Text>
                       <View
                         style={{
-                          flexDirection: "row",
-                          justifyContent: "space-between",
-                          marginTop: 10,
-                          width: 100,
-                          height: 30,
                           alignItems: "center",
-                          backgroundColor: "#ddd",
-                          borderRadius: 20,
-                          padding: 2,
+                          justifyContent: "center",
+                          marginRight: 10,
+                        }}
+                      >
+                        <Image
+                          source={{
+                            uri: item.img_url,
+                          }}
+                          style={{
+                            width: 70,
+                            height: 70,
+                            backgroundColor: "red",
+                            borderRadius: 15,
+                          }}
+                        />
+                      </View>
+                      <View
+                        style={{
+                          flex: 1,
+                          flexDirection: "row",
+                          width: "100%",
+                          justifyContent: "space-between",
+                          alignItems: "center",
                         }}
                       >
                         <View
-                            style={{
-                              backgroundColor: "white",
-                              width: 25,
-                              height: 25,
-                              justifyContent: "center",
-                              alignItems: "center",
-                              borderRadius: 20,
-                            }}
+                          style={{
+                            justifyContent: "space-between",
+                            height: "80%",
+                          }}
                         >
-                          <Icon
-                            name="remove"
-                            size={18}
-                          />
+                          <Text
+                            style={{
+                              fontSize: 16,
+                              marginBottom: 2,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {item.nama}
+                          </Text>
+                          <Text style={{ fontSize: 14 }}>Rp. 10000 x {item.qty}</Text>
                         </View>
-                        <Text style={{ fontSize: 16 }}>{hitung}</Text>
-                        <View
+                        <View>
+                          <Text style={{ fontSize: 18, fontWeight: 600 }}>
+                            {formatRupiah(item.harga * item.qty)}
+                          </Text>
+                          <View
                             style={{
-                              backgroundColor: "white",
-                              width: 25,
-                              height: 25,
-                              justifyContent: "center",
+                              flexDirection: "row",
+                              justifyContent: "space-between",
+                              marginTop: 10,
+                              width: 100,
+                              height: 30,
                               alignItems: "center",
+                              backgroundColor: "#ddd",
                               borderRadius: 20,
+                              padding: 2,
                             }}
-                        >
-                          <Icon
-                            name="remove"
-                            size={18}
-                          />
+                          >
+                            <TouchableOpacity
+                                style={{
+                                  backgroundColor: "white",
+                                  width: 25,
+                                  height: 25,
+                                  justifyContent: "center",
+                                  alignItems: "center",
+                                  borderRadius: 20,
+                                }}
+                                onPress={()=>decreaseQty(item.id)}
+                            >
+                              <Icon
+                                name="remove"
+                                size={18}
+                              />
+                            </TouchableOpacity>
+                            <Text style={{ fontSize: 16 }}>{item.qty}</Text>
+                            <TouchableOpacity
+                                style={{
+                                  backgroundColor: "white",
+                                  width: 25,
+                                  height: 25,
+                                  justifyContent: "center",
+                                  alignItems: "center",
+                                  borderRadius: 20,
+                                }}
+                            >
+                              <Icon
+                                name="add"
+                                size={18}
+                              />
+                            </TouchableOpacity>
+                          </View>
                         </View>
                       </View>
                     </View>
-                  </View>
-                </View>
+                  ))
+                )
+              }
               </View>
             </View>
             <View
@@ -413,7 +386,7 @@ export default function Cashier() {
               >
                 <Text>Total Bayar</Text>
                 <Text style={{ fontSize: 16, fontWeight: 700 }}>
-                  Rp. Gratis
+                  {formatRupiah(total)}
                 </Text>
               </View>
             </View>
@@ -445,7 +418,7 @@ export default function Cashier() {
                   color={"#ff6817"}
                 />
               </View>
-              <Text style={{ color: "white", fontWeight: 600 }}>Bayar</Text>
+              <Text style={{ color: "white", fontWeight: 600 }}>Bayar {formatRupiah(total)}</Text>
               <View
                 style={{
                   flexDirection: "row",
@@ -480,5 +453,5 @@ export default function Cashier() {
         </View>
       </View>
     </SafeAreaView>
-  );
+  );  
 }
