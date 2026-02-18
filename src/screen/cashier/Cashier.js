@@ -1,6 +1,6 @@
 import Icon from "react-native-vector-icons/Ionicons";
-import { useEffect, useState, useMemo } from "react";
-import { Alert, Image, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useState, useMemo,useRef } from "react";
+import { Alert, Image, Text, TouchableOpacity, View, Animated, PanResponder,Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { cakrokStyle } from "../../constants/styles";
 import { supabase } from "../../../lib/supabase/Supabase"
@@ -8,11 +8,54 @@ import { supabase } from "../../../lib/supabase/Supabase"
 // Component
 import Header from '../../components/header/Header'
 
+const { width } = Dimensions.get("window");
 
 export default function Cashier() {
   const [hitung, setHitung] = useState(0);
   const [menu,setMenu] = useState([]);
   const [cart, setCart] = useState([]);
+  const [containerWidth,setContainerWidth] = useState(0)
+
+  // Test ---
+  const translateX = useRef(new Animated.Value(0)).current;
+
+  const MAX_SLIDE = 350 ; // sesuaikan jika perlu
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: () => true,
+
+      onPanResponderMove: (_, gesture) => {
+        if (gesture.dx > 0 && gesture.dx <= MAX_SLIDE) {
+          translateX.setValue(gesture.dx);
+        }
+      },
+
+      onPanResponderRelease: (_, gesture) => {
+        if (gesture.dx > MAX_SLIDE) {
+          Animated.timing(translateX, {
+            toValue: MAX_SLIDE,
+            duration: 150,
+            useNativeDriver: false,
+          }).start(() => {
+            Alert.alert("Pembayaran", "Pembayaran berhasil 🎉");
+
+            // reset kembali setelah alert
+            Animated.spring(translateX, {
+              toValue: 0,
+              useNativeDriver: false,
+            }).start();
+          });
+        } else {
+          Animated.spring(translateX, {
+            toValue: 0,
+            useNativeDriver: false,
+          }).start();
+        }
+      },
+    })
+  ).current; 
+  // Test ---
 
   function formatRupiah(angka) {
     return 'Rp ' + angka.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
@@ -87,7 +130,7 @@ export default function Cashier() {
               flexDirection: "row",
               alignItems: "center",
               backgroundColor: "white",
-              width: "100%",
+              width: "100%  ",
               height: "45",
               borderWidth: 1.5,
               borderColor: "#ff6817",
@@ -390,65 +433,80 @@ export default function Cashier() {
                 </Text>
               </View>
             </View>
-            <View
-              style={{
-                flexDirection: "row",
-                backgroundColor: "#ff6817",
-                width: '100%',
-                height: 50,
-                paddingHorizontal: 5,
-                alignItems: "center",
-                borderRadius: 30,
-                justifyContent: "space-between",
-              }}
-            >
-              <View
-                style={{
-                  backgroundColor: "white",
-                  width: 42,
-                  height: 42,
-                  justifyContent: "center",
-                  alignItems: "center",
-                  borderRadius: 50,
-                }}
-              >
-                <Icon
-                  name="arrow-forward-sharp"
-                  size={20}
-                  color={"#ff6817"}
-                />
-              </View>
-              <Text style={{ color: "white", fontWeight: 600 }}>Bayar {formatRupiah(total)}</Text>
-              <View
-                style={{
-                  flexDirection: "row",
-                  width: 42,
-                  height: 42,
-                  justifyContent: "center",
-                  alignItems: "center",
-                  borderRadius: 50,
-                }}
-              >
-                <Icon
-                  name="chevron-forward"
-                  size={20}
-                  color={"white"}
-                  style={{ marginRight: -10 }}
-                />
-                <Icon
-                  name="chevron-forward"
-                  size={20}
-                  color={"white"}
-                  style={{ marginRight: -10 }}
-                />
-                <Icon
-                  name="chevron-forward"
-                  size={20}
-                  color={"white"}
-                  style={{ marginRight: 0 }}
-                />
-              </View>
-            </View>
+
+    <View
+      onLayout={(e) =>
+        setContainerWidth(e.nativeEvent.layout.width)
+      }    
+      style={{
+        flexDirection: "row",
+        backgroundColor: "#ff6817",
+        width: "100%",
+        height: 50,
+        paddingHorizontal: 5,
+        alignItems: "center",
+        borderRadius: 30,
+        justifyContent: "space-between",
+        overflow: "hidden",
+      }}
+    >
+      {/* SLIDER BUTTON */}
+      <Animated.View
+        {...panResponder.panHandlers}
+        style={{
+          backgroundColor: "white",
+          width: 42,
+          height: 42,
+          justifyContent: "center",
+          alignItems: "center",
+          borderRadius: 50,
+          transform: [{ translateX }],
+        }}
+      >
+        <Icon
+          name="arrow-forward-sharp"
+          size={20}
+          color={"#ff6817"}
+        />
+      </Animated.View>
+
+      {/* TEXT */}
+      <Text style={{ color: "white", fontWeight: "600" }}>
+        Bayar {formatRupiah(total)}
+      </Text>
+
+      {/* RIGHT CHEVRON */}
+      <View
+        style={{
+          flexDirection: "row",
+          width: 42,
+          height: 42,
+          justifyContent: "center",
+          alignItems: "center",
+          borderRadius: 50,
+        }}
+      >
+        <Icon
+          name="chevron-forward"
+          size={20}
+          color={"white"}
+          style={{ marginRight: -10 }}
+        />
+        <Icon
+          name="chevron-forward"
+          size={20}
+          color={"white"}
+          style={{ marginRight: -10 }}
+        />
+        <Icon
+          name="chevron-forward"
+          size={20}
+          color={"white"}
+          style={{ marginRight: 0 }}
+        />
+      </View>
+    </View>
+
           </View>
         </View>
       </View>
