@@ -5,6 +5,7 @@ import { supabase } from './lib/supabase/Supabase'
 import LoginScreen from './src/screen/login/Login'
 import HomeScreen from './src/screen/cashier/Cashier'
 import { ActivityIndicator, View } from 'react-native'
+import Slider from './src/screen/slideToPay'
 
 const Stack = createNativeStackNavigator()
 
@@ -45,7 +46,8 @@ export default function App() {
             {(props) => <HomeScreen {...props} session={session} />}
           </Stack.Screen>
         ) : (
-          <Stack.Screen name="Login" component={LoginScreen} />
+          // <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Login" component={Slider} />
         )}
       </Stack.Navigator>
     </NavigationContainer>

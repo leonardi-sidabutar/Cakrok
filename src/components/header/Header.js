@@ -8,11 +8,11 @@ export default function Header() {
   const logOut = async ()=> {
     const {err} = await supabase.auth.signOut()
 
-    if(err){
-      Alert.alert('Logout Gagal:',err.message)
-    }else{
-      Alert.alert('Anda Logout')
-    }
+    // if(err){
+    //   Alert.alert('Logout Gagal:',err.message)
+    // }else{
+    //   Alert.alert('Anda Logout')
+    // }
   }
     
   return (

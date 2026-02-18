@@ -260,7 +260,7 @@ export default function Cashier() {
                 }}
               >
               {
-                cart.length === 0 ? (<Text>Kosong</Text>) :
+                cart.length === 0 ? (<Text style={{color:'#555'}}>Belum ada pesanan</Text>) :
                 (
                   cart.map((item,index)=>(
                   <View style={{ width: "100%", height: 70, flexDirection: "row"}} key={item.id}
@@ -394,7 +394,7 @@ export default function Cashier() {
               style={{
                 flexDirection: "row",
                 backgroundColor: "#ff6817",
-                width: "95%",
+                width: '100%',
                 height: 50,
                 paddingHorizontal: 5,
                 alignItems: "center",

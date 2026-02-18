@@ -6,8 +6,10 @@ import {
   Alert,
   StyleSheet,
   Text,
+  Image
 } from 'react-native'
 import { supabase } from '../../../lib/supabase/Supabase'
+import { Color } from 'react-native/types_generated/Libraries/Animated/AnimatedExports'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -33,7 +35,9 @@ export default function Login() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
+      <Image source={require('../../assets/images/splash-icon.png')} style={styles.logo} />
+      <View style={styles.wrap}>
+      <Text style={styles.title}>Selamat Datang Di Aplikasi Cashier Cakrok, Harap Login!</Text>
 
       <TextInput
         placeholder="Email"
@@ -52,10 +56,13 @@ export default function Login() {
       />
 
       <Button
-        title={loading ? 'Loading...' : 'Login'}
+        title={loading ? 'Loading...' : 'Masuk'}
         onPress={handleLogin}
         disabled={loading}
+        color={'#0099b3'}
       />
+      </View>
+
     </View>
   )
 }
@@ -65,17 +72,29 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 20,
-    backgroundColor:'#ddd'
+    backgroundColor:'#fff',
+    alignItems:'center'
   },
   title: {
-    fontSize: 28,
+    fontSize: 15,
     marginBottom: 20,
     textAlign: 'center',
+    color:'#333'
   },
   input: {
     borderWidth: 1,
     marginBottom: 15,
     padding: 10,
-    borderRadius: 5,
+    borderRadius: 50,
+    borderColor:'#ff6817'
   },
+  wrap:{
+    width:500
+  },
+  logo:{
+    width:100,
+    height:100,
+    marginBottom:20,
+    borderRadius:10
+  }
 })
