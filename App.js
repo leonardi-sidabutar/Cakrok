@@ -5,6 +5,7 @@ import { supabase } from './lib/supabase/Supabase'
 import LoginScreen from './src/screen/login/Login'
 import HomeScreen from './src/screen/cashier/Cashier'
 import { ActivityIndicator, View } from 'react-native'
+import {OrderProvider} from './src/context/Context'
 import Slider from './src/screen/slideToPay'
 import Print from './lib/printer/Print'
 
@@ -40,18 +41,20 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {session ? (
-          <Stack.Screen name="Home">
-            {(props) => <HomeScreen {...props} session={session} />}
-          </Stack.Screen>
-        ) : (
-          // <Stack.Screen name="Login" component={LoginScreen} />
-          // <Stack.Screen name="Login" component={Slider} />
-          <Stack.Screen name="Login" component={Print} />
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <OrderProvider>
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {session ? (
+            <Stack.Screen name="Home">
+              {(props) => <HomeScreen {...props} session={session} />}
+            </Stack.Screen>
+          ) : (
+            <Stack.Screen name="Login" component={LoginScreen} />
+            // <Stack.Screen name="Login" component={Slider} />
+            // <Stack.Screen name="Login" component={Print} />
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+    </OrderProvider>
   )
 }
