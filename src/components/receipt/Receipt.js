@@ -1,17 +1,176 @@
-import { StyleSheet, Text, View, Animated, PanResponder, Image, TouchableOpacity } from 'react-native'
-import {useState, useMemo, useRef, useContext} from 'react'
+import { ScrollView, StyleSheet, Text, View, Animated, PanResponder, Image, TouchableOpacity, Modal, Button, Alert, Platform, PermissionsAndroid } from 'react-native'
+import {useState, useMemo, useRef, useContext, useEffect, useCallback} from 'react'
 import Icon from "react-native-vector-icons/Ionicons";
 import { OrderContext } from '../../context/Context';
-
+// bluetooth
+import RNBluetoothClassic from 'react-native-bluetooth-classic';
 
 export default function Receipt() {
-  
-    const {orders,decreaseQty} = useContext(OrderContext);
 
-    console.log(orders);
+    const {orders,total,decreaseQty} = useContext(OrderContext);
+
+    const today = new Date();
+    const options = { 
+      weekday: 'long',  // nama hari
+      day: '2-digit',   // tanggal
+      month: 'short',   // nama bulan 3 huruf
+      year: 'numeric'   // tahun 4 digit
+    };
+    const formattedDate = today.toLocaleDateString('id-ID', options);
+
+    const day = String(today.getDate()).padStart(2, '0');       // 18
+    const month = String(today.getMonth() + 1).padStart(2, '0'); // Februari = 02
+    const year = today.getFullYear();                            // 2026
+    const dateReceipt = `${day}/${month}/${year}`;    
+    
+    const orderRef = useRef(orders);
+    const totalRef = useRef(total);
+
+    useEffect(()=>{
+      orderRef.current = orders;
+      totalRef.current = total;
+    },[orders, total])
+
+    const requestPermissions = async () => {
+      if (Platform.OS === 'android' && Platform.Version >= 31) {
+        await PermissionsAndroid.requestMultiple([
+          PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+          PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        ]);
+      }
+    };
+
+    const printTest = useCallback( async () => {
+      try {
+        await requestPermissions();
+
+        const devices = await RNBluetoothClassic.getBondedDevices();
+
+        if (devices.length === 0) {
+          // Alert.alert('Tidak ada device terpairing');
+          setAlertPayment(true)
+          return;
+        }
+
+        // GANTI sesuai nama printer kamu
+        const printer = devices.find(device =>
+          device.name === 'RPP02N'
+        );
+
+        if (!printer) {
+          // Alert.alert('Printer tidak ditemukan di device pairing');
+          console.log('Printer tidak ditemukan di device pairing');
+          return;
+        }
+
+        const connected = await printer.connect();
+
+        if (!connected) {
+          // Alert.alert('Gagal connect ke printer');
+          console.log('Gagal connect ke printer');
+          return;
+        }
+
+        // ===== ESC/POS COMMAND =====
+        const ESC = '\x1B';
+        const boldOn = ESC + '\x45\x01';
+        const boldOff = ESC + '\x45\x00';
+        const center = ESC + '\x61\x01';
+        const left = ESC + '\x61\x00';
+        const cut = ESC + '\x64\x03';
+        const normalSize = '\x1D\x21\x00';
+        const smallText = '\x1B\x4D\x01'; // font B (lebih kecil, jika didukung)
+        const normalFont = '\x1B\x4D\x00'; // font A
+
+        let receipt = '';
+        receipt += center;
+        receipt += '\n';
+        receipt += boldOn ;
+        receipt += 'CAKROK BAHAGIA\n' ;
+        receipt += boldOff ;
+        receipt += smallText ;
+        receipt += 'Jln. Pantai Halim Marindal I\n' ;
+        receipt += normalFont ;
+        receipt += left ;
+        receipt += '================================\n';
+        receipt +=  'Transaction: #CO-0001           \n';
+        receipt +=  `Tanggal: ${dateReceipt}         \n`;
+        receipt +=  'No. Meja: 12                    \n';
+        receipt +=  '--------------------------------\n'; 
+
+        // // Loop orders
+        orderRef.current.forEach(item => {
+          receipt += `${item.nama.padEnd(32, ' ')}\n`;
+          receipt += `${item.qty}x @${item.harga.toLocaleString('id-ID').padEnd(16,' ')}= ${(item.qty*item.harga).toLocaleString('id-ID')}\n`;
+        });
+
+        receipt += '--------------------------------\n';
+        receipt += boldOn;
+        receipt += `TOTAL               Rp. ${(totalRef.current).toLocaleString('id-ID')}\n`;
+        receipt += boldOff;
+        receipt += '--------------------------------\n';
+        receipt += center;
+        receipt += smallText;
+        receipt += 'Terima Kasih Atas Kunjungan Anda\n';
+        receipt += 'Kritik & Saran\n';
+        receipt += '089505053793\n';
+        receipt += normalFont;
+        receipt += '================================\n';
+        receipt += '\n';
+        receipt += center;
+        receipt += 'Jangan Lupa Bahagia\n';
+        receipt += cut;
+        
+        // const receipt =
+        //   center +
+        //   '\n' +        
+        //   boldOn +
+        //   'CAKROK BAHAGIA\n' +
+        //   boldOff +
+        //   smallText +
+        //   'Jln. Pantai Halim Marindal I\n' +
+        //   normalFont +
+        //   left +
+        //   '================================\n' +
+        //   'Transaction: #CO-0001           \n' +
+        //   'Tanggal: 18/02/2026             \n' +
+        //   'No. Meja: 12                    \n' +
+        //   '--------------------------------\n' +
+        //   'Sanger                          \n' +
+        //   '2x @12.000              = 24.000\n' +
+        //   '--------------------------------\n' +
+        //   boldOn +
+        //   'TOTAL                  Rp 68.000\n' +
+        //   boldOff +
+        //   '--------------------------------\n' +
+        //   center +
+        //   smallText +        
+        //   'Terima Kasih Atas Kunjungan Anda\n' +
+        //   'Kritik & Saran\n' +
+        //   '089505053793\n' +
+        //   normalFont +
+        //   '================================\n' +
+        //   '\n' +
+        //   center +
+        //   'Jangan Lupa Bahagia\n\n\n' +
+        //   '\n\n\n'
+        //   cut;
+
+        await printer.write(receipt);
+
+        await printer.disconnect();
+
+        // Alert.alert('Print berhasil ✅');
+      } catch (error) {
+        console.log(error);
+        Alert.alert('Error', error.message);
+      }
+    },[orders,total]);
 
     const [hitung, setHitung] = useState(0);
     const [containerWidth,setContainerWidth] = useState(0);
+    const [alertPayment, setAlertPayment] = useState(false);
 
     const translateX = useRef(new Animated.Value(0)).current;
 
@@ -39,7 +198,9 @@ export default function Receipt() {
                 duration: 150,
                 useNativeDriver: false,
             }).start(() => {
-                Alert.alert("Pembayaran", "Pembayaran berhasil 🎉");
+                // Alert.alert("Pembayaran", "Pembayaran berhasil 🎉");
+                printTest()
+                setAlertPayment(true)
 
                 // reset kembali setelah alert
                 Animated.spring(translateX, {
@@ -57,104 +218,113 @@ export default function Receipt() {
         })
     ).current;
 
-    function tekan() {
-        setHitung(hitung + 1);
-        getMenu();
-    }    
-
-    // 🔹 Hitung total (optimal)
-    const total = useMemo(() => {
-        return orders.reduce((sum, item) => {
-        return sum + item.harga * item.qty;
-        }, 0);
-    }, [orders]);
-
   return (
           <View style={styles.wraper}>
+
+            <Modal
+              animationType="slide"
+              transparent={true}
+              visible={alertPayment}
+              onRequestClose={() => setAlertPayment(false)}
+            >
+              <View style={styles.centeredView}>
+                <View style={styles.modalView}>
+                  <Text>Pembayaran Berhasil</Text>
+
+                  <Button
+                    title="X"
+                    onPress={() => setAlertPayment(false)}
+                  />
+                </View>
+              </View>
+            </Modal>
+          
             <View style={{ alignItems: "center" }}>
               <Text>Pesanan</Text>
               <Text style={{ fontWeight: 700, marginTop: 3 }}>#CO-001</Text>
             </View>
-            <View style={{ width: "100%", flex: 1, marginTop: 10 }}>
-              <View style={styles.struk}>
-              {
-                orders.length === 0 ? (<Text style={{color:'#555'}}>Belum ada pesanan</Text>) :
-                (
-                  orders.map((item,index)=>(
-                  <View style={{ width: "100%", height: 70, flexDirection: "row"}} key={item.id}
-                    >
-                      <View style={styles.wrapStruk}>
-                        <Image
-                          source={{uri: item.img_url}}
-                          style={styles.imgStruk}/>
-                      </View>
-                      <View style={styles.flexStruk}>
-                        <View
-                          style={{justifyContent: "space-between",height: "80%"}}
+              <View style={{ width: "100%", flex: 1, marginTop: 10 }}>
+                  <View style={styles.struk}>
+                  <ScrollView style={{width:'100%',height:'100%'}}>
+                  {
+                    orders.length === 0 ? (<Text style={{color:'#555'}}>Belum ada pesanan</Text>) :
+                    (
+                      orders.map((item,index)=>(
+                      <View style={{ width: "100%", height: 70, flexDirection: "row",marginBottom:5}} key={item.id}
                         >
-                          <Text style={styles.titleStruk}>
-                            {item.nama}
-                          </Text>
-                          <Text style={{ fontSize: 14 }}>Rp. 10000 x {item.qty}</Text>
-                        </View>
-                        <View>
-                          <Text style={{ fontSize: 18, fontWeight: 600 }}>
-                            {formatRupiah(item.harga * item.qty)}
-                          </Text>
-                          <View
-                            style={{
-                              flexDirection: "row",
-                              justifyContent: "space-between",
-                              marginTop: 10,
-                              width: 100,
-                              height: 30,
-                              alignItems: "center",
-                              backgroundColor: "#ddd",
-                              borderRadius: 20,
-                              padding: 2
-                            }}
-                          >
-                            <TouchableOpacity
-                                style={{
-                                  backgroundColor: "white",
-                                  width: 25,
-                                  height: 25,
-                                  justifyContent: "center",
-                                  alignItems: "center",
-                                  borderRadius: 20,
-                                }}
-                                onPress={()=>decreaseQty(item.id)}
+                          <View style={styles.wrapStruk}>
+                            <Image
+                              source={{uri: item.img_url}}
+                              style={styles.imgStruk}/>
+                          </View>
+                          <View style={styles.flexStruk}>
+                            <View
+                              style={{justifyContent: "space-between",height: "80%"}}
                             >
-                              <Icon
-                                name="remove"
-                                size={18}
-                              />
-                            </TouchableOpacity>
-                            <Text style={{ fontSize: 16 }}>{item.qty}</Text>
-                            <TouchableOpacity
+                              <Text style={styles.titleStruk}>
+                                {item.nama}
+                              </Text>
+                              <Text style={{ fontSize: 14 }}>Rp. 10000 x {item.qty}</Text>
+                            </View>
+                            <View>
+                              <Text style={{ fontSize: 18, fontWeight: 600 }}>
+                                {formatRupiah(item.harga * item.qty)}
+                              </Text>
+                              <View
                                 style={{
-                                  backgroundColor: "white",
-                                  width: 25,
-                                  height: 25,
-                                  justifyContent: "center",
+                                  flexDirection: "row",
+                                  justifyContent: "space-between",
+                                  marginTop: 10,
+                                  width: 100,
+                                  height: 30,
                                   alignItems: "center",
+                                  backgroundColor: "#ddd",
                                   borderRadius: 20,
+                                  padding: 2
                                 }}
-                            >
-                              <Icon
-                                name="add"
-                                size={18}
-                              />
-                            </TouchableOpacity>
+                              >
+                                <TouchableOpacity
+                                    style={{
+                                      backgroundColor: "white",
+                                      width: 25,
+                                      height: 25,
+                                      justifyContent: "center",
+                                      alignItems: "center",
+                                      borderRadius: 20,
+                                    }}
+                                    onPress={()=>decreaseQty(item.id)}
+                                >
+                                  <Icon
+                                    name="remove"
+                                    size={18}
+                                  />
+                                </TouchableOpacity>
+                                <Text style={{ fontSize: 16 }}>{item.qty}</Text>
+                                <TouchableOpacity
+                                    style={{
+                                      backgroundColor: "white",
+                                      width: 25,
+                                      height: 25,
+                                      justifyContent: "center",
+                                      alignItems: "center",
+                                      borderRadius: 20,
+                                    }}
+                                >
+                                  <Icon
+                                    name="add"
+                                    size={18}
+                                  />
+                                </TouchableOpacity>
+                              </View>
+                            </View>
                           </View>
                         </View>
-                      </View>
-                    </View>
-                  ))
-                )
-              }
+                      ))
+                    )
+                  }
+                  </ScrollView>
+                  </View>
               </View>
-            </View>
             <View
               style={{
                 flexDirection: "column",
@@ -272,7 +442,7 @@ const styles = StyleSheet.create({
         width: "100%",
         borderRadius: 15,
         padding: 10,
-        flex: 1        
+        flex: 1
     },
     wrapStruk:{
         alignItems: "center",
@@ -296,5 +466,46 @@ const styles = StyleSheet.create({
         fontSize: 16,
         marginBottom: 2,
         fontWeight: 700        
-    }
+    },
+
+  centeredView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalView: {
+    margin: 20,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 35,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  button: {
+    borderRadius: 20,
+    padding: 10,
+    elevation: 2,
+  },
+  buttonOpen: {
+    backgroundColor: '#F194FF',
+  },
+  buttonClose: {
+    backgroundColor: '#f32121',
+  },
+  textStyle: {
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  modalText: {
+    marginBottom: 15,
+    textAlign: 'center',
+  },        
 })

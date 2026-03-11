@@ -1,10 +1,10 @@
-import React, { createContext, useState } from "react";
+import React, { createContext, useState, useMemo } from "react";
 
 export const OrderContext = createContext();
 
 export const OrderProvider = ({ children }) => {
 
-        const [orders, setOrders] = useState([]);
+        const [orders, setOrders] = useState([]);        
 
         const addItem = (item)=>{
             const existing = orders.find((i) => i.id === item.id);
@@ -31,8 +31,15 @@ export const OrderProvider = ({ children }) => {
             );
         };    
 
+        // 🔹 Hitung total (optimal)
+        const total = useMemo(() => {
+            return orders.reduce((sum, item) => {
+            return sum + item.harga * item.qty;
+            }, 0);
+        }, [orders]);        
+
   return (
-    <OrderContext.Provider value={{ orders, addItem, decreaseQty }}>
+    <OrderContext.Provider value={{ orders, addItem, decreaseQty, total }}>
       {children}
     </OrderContext.Provider>
   );

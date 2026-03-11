@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View, TouchableOpacity, Image } from 'react-native'
+import { StyleSheet, Text, View, TouchableOpacity, Image} from 'react-native'
 import { useState,useEffect, useContext } from 'react'
 import { supabase } from '../../../lib/supabase/Supabase';
 import Icon from "react-native-vector-icons/Ionicons";
@@ -6,7 +6,6 @@ import { OrderContext } from '../../context/Context';
 export default function Menu() {
 
     const {addItem} = useContext(OrderContext);
-
     const [menu,setMenu] = useState([]);
 
     const getMenu = async()=>{
@@ -20,14 +19,14 @@ export default function Menu() {
         console.log(data)
         setMenu(data)
         }
-    }    
+    }
 
     useEffect(()=>{
         getMenu();
     },[])
     
   return (
-    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>        
     {
         menu.map((item,index)=>(
         <TouchableOpacity
@@ -57,6 +56,7 @@ export default function Menu() {
         
     ))}
     </View>
+
   )
 }
 
@@ -92,5 +92,5 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         borderColor: "#ff6817"        
-    }
+    },
 })

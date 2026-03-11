@@ -1,9 +1,20 @@
 import Icon from "react-native-vector-icons/Ionicons";
-import { StyleSheet, Text, View,TouchableOpacity,Image } from 'react-native'
-import React from 'react'
+import { StyleSheet, Text, View,TouchableOpacity,Image, Button, Modal } from 'react-native'
+import React, { useState } from 'react'
 import { supabase } from "../../../lib/supabase/Supabase";
 
 export default function Header() {
+
+  const [alertPayment, setAlertPayment] = useState(false);
+
+  const today = new Date();
+  const options = { 
+    weekday: 'long',  // nama hari
+    day: '2-digit',   // tanggal
+    month: 'short',   // nama bulan 3 huruf
+    year: 'numeric'   // tahun 4 digit
+  };
+  const formattedDate = today.toLocaleDateString('id-ID', options);
 
   const logOut = async ()=> {
     const {err} = await supabase.auth.signOut()
@@ -18,15 +29,37 @@ export default function Header() {
       <View
         style={styles.head}
       >
+
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={alertPayment}
+          onRequestClose={() => setAlertPayment(false)}
+        >
+          <View style={styles.centeredView}>
+            <View style={styles.modalView}>
+              <View style={{width:'100%',justifyContent:'space-between',flexDirection:'row',borderBottomWidth:1,borderBottomColor:'#ddd',paddingBottom:10}}>
+                <Text style={{fontSize:16,fontWeight:600}}>Tambah Menu</Text>
+                <TouchableOpacity onPress={()=>setAlertPayment(false)} style={styles.close}>
+                  <Text>x</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
         <View style={{ width: "50%" }}>
           <View  style={{flexDirection: "row", alignItems: "center"}}
           >
-            <Image
-              source={require("../../assets/images/splash-icon.png")}
-              style={{ width: 40, height: 40, borderRadius: 5 }}
-            />
+            <TouchableOpacity onPress={()=>setAlertPayment(true)}>
+              <Image
+                source={require("../../assets/images/splash-icon.png")}
+                onPress={()=>console.log('oke')}
+                style={{ width: 40, height: 40, borderRadius: 5 }}
+              />
+            </TouchableOpacity>
             <Text style={styles.text}>
-              Selasa, 10 Feb 2026
+              {formattedDate}
             </Text>
           </View>
         </View>
@@ -86,5 +119,52 @@ const styles = StyleSheet.create({
     gap: 8,
     alignItems: "center",
     borderRadius: 50    
+  },
+
+  centeredView: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalView: {
+    margin: 20,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 10,
+    width:500,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  button: {
+    borderRadius: 20,
+    padding: 10,
+    elevation: 2,
+  },
+  buttonOpen: {
+    backgroundColor: '#F194FF',
+  },
+  buttonClose: {
+    backgroundColor: '#f32121',
+  },
+  textStyle: {
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  modalText: {
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  close:{
+    justifyContent:'center',
+    alignItems:'center',
+    width:20,
+    height:20
   }
 })
